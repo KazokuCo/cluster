@@ -1,0 +1,7 @@
+---
+- hosts: master
+  roles:
+  - ovh
+  - common
+  - k8s
+  - k8s/master

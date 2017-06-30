@@ -1,0 +1,17 @@
+kind: MasterConfiguration
+apiVersion: kubeadm.k8s.io/v1alpha1
+kubernetesVersion: {{ k8s_version }}
+cloudProvider: openstack
+token: {{ k8s_token }}
+tokenTTL: 0
+api:
+  advertiseAddress: {{ k8s_master }}
+networking:
+  dnsDomain: cluster.local
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.96.0.0/12
+apiServerCertSANs:
+- {{ k8s_master }}
+- {{ k8s_master_host }}
+- {{ ansible_host }}
+- {{ public_ipv6 }}

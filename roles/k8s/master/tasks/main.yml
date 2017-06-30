@@ -1,0 +1,42 @@
+---
+- name: ensure kubeadm.conf is present
+  template:
+    src: kubeadm.conf.yml
+    dest: "{{ ansible_env.PWD }}/kubeadm.conf"
+
+- name: init k8s cluster
+  shell: kubeadm reset && kubeadm init --config=kubeadm.conf
+  args:
+    creates: /etc/kubernetes/kubelet.conf
+
+- name: create kube config dir for root
+  file:
+    path: /root/.kube
+    state: directory
+
+- name: symlink kubectl for root
+  file:
+    path: /root/.kube/config
+    src: /etc/kubernetes/admin.conf
+    state: link
+
+- name: create kube config dir for user
+  file:
+    path: "{{ ansible_env.PWD }}/.kube"
+    state: directory
+
+- name: copy kubectl for user
+  copy:
+    remote_src: yes
+    force: yes
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ ansible_env.PWD }}/.kube/config"
+    owner: "{{ ansible_env.SUDO_USER }}"
+
+- name: register flannel resources
+  shell: "curl -sSL {{ item }} | kubectl apply -f -"
+  register: result
+  changed_when: '"changed" in result.stdout or "created" in result.stdout'
+  with_items:
+    - https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel-rbac.yml
+    - https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml

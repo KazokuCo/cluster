@@ -1,0 +1,31 @@
+---
+- name: configure public ipv6
+  copy:
+    dest: /etc/network/interfaces.d/51-ipv6.cfg
+    content: |
+      iface ens3 inet6 static
+          address {{ public_ipv6 }}
+          netmask 128
+          post-up /sbin/ip -6 route add {{ public_ipv6_gateway }} dev ens3
+          post-up /sbin/ip -6 route add default via {{ public_ipv6_gateway }} dev ens3
+          pre-down /sbin/ip -6 route del default via {{ public_ipv6_gateway }} dev ens3
+          pre-down /sbin/ip -6 route del {{ public_ipv6_gateway }} dev ens3
+  register: ipv6_result
+
+- name: configure private networking
+  copy:
+    dest: /etc/network/interfaces.d/60-private.cfg
+    content: |
+      auto ens4
+      iface ens4 inet dhcp
+  register: priv_result
+
+- name: reboot server for network changes
+  shell: sleep 2 && shutdown -r now
+  async: 1
+  poll: 0
+  when: (ipv6_result|changed) or (priv_result|changed)
+
+- name: wait for server to come back online
+  local_action: wait_for host={{ ansible_default_ipv4.address }} port=22 delay=5 timeout=60
+  when: (ipv6_result|changed) or (priv_result|changed)

@@ -1,0 +1,7 @@
+---
+- hosts: workers
+  roles:
+  - ovh
+  - common
+  - k8s
+  - k8s/node

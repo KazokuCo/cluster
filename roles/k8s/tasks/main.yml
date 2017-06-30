@@ -1,0 +1,33 @@
+---
+- name: ensure the k8s signing key is available
+  apt_key:
+    id: 3746C208A7317B0F
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: ensure the k8s repo is available
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-{{ ansible_distribution_release }} main
+
+- name: ensure kubernetes packages are installed
+  apt: name={{ item }} state=installed
+  with_items:
+    - kubelet
+    - kubernetes-cni
+    - kubeadm
+
+- name: ensure the kubelet cloud config is present
+  template:
+    src: cloud-config.ini
+    dest: /etc/kubernetes/cloud-config
+
+- name: ensure the kubelet cloud dropin is present
+  copy:
+    src: 00-cloud.conf
+    dest: /etc/systemd/system/kubelet.service.d/00-cloud.conf
+  register: result
+
+- name: reload systemd units
+  # systemd: daemon_reload=yes # Ansible 2.4+
+  command: systemctl daemon-reload
+  when: result|changed

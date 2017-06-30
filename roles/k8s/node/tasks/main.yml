@@ -1,0 +1,7 @@
+---
+- name: join k8s cluster
+  shell: kubeadm reset && kubeadm join --token {{ k8s_token }} {{ k8s_master }}:6443
+  async: 60
+  poll: 5
+  args:
+    creates: /etc/kubernetes/kubelet.conf
