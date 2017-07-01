@@ -1,3 +1,7 @@
 /production
+/kubeconfig
+*.crt
+*.key
+*.p12
 
 *.retry

@@ -1,0 +1,66 @@
+---
+- hosts: all
+  tasks:
+
+  - name: wire up A nodes.k8s.kazoku.co
+    cloudflare_dns:
+      state: present
+      zone: kazoku.co
+      record: "{{ item }}"
+      type: A
+      value: "{{ ansible_host }}"
+      solo: yes
+      account_email: "{{ cloudflare_email }}"
+      account_api_token: "{{ cloudflare_token }}"
+    with_items:
+    - "{{ inventory_hostname }}.nodes.k8s"
+
+  - name: wire up AAAA nodes.k8s.kazoku.co
+    cloudflare_dns:
+      state: present
+      zone: kazoku.co
+      record: "{{ item }}"
+      type: AAAA
+      value: "{{ public_ipv6 }}"
+      solo: yes
+      account_email: "{{ cloudflare_email }}"
+      account_api_token: "{{ cloudflare_token }}"
+    with_items:
+    - "{{ inventory_hostname }}.nodes.k8s"
+
+- hosts: master
+  tasks:
+
+  - name: wire up CNAME k8s.kazoku.co
+    cloudflare_dns:
+      state: present
+      zone: kazoku.co
+      record: k8s
+      type: CNAME
+      value: "{{ inventory_hostname }}.nodes.k8s.kazoku.co"
+      solo: yes
+      account_email: "{{ cloudflare_email }}"
+      account_api_token: "{{ cloudflare_token }}"
+
+- hosts: workers
+  tasks:
+
+  - name: wire up A nodes.k8s.kazoku.co
+    cloudflare_dns:
+      state: present
+      zone: kazoku.co
+      record: nodes.k8s.kazoku.co
+      type: A
+      value: "{{ ansible_host }}"
+      account_email: "{{ cloudflare_email }}"
+      account_api_token: "{{ cloudflare_token }}"
+
+  - name: wire up AAAA nodes.k8s.kazoku.co
+    cloudflare_dns:
+      state: present
+      zone: kazoku.co
+      record: nodes.k8s.kazoku.co
+      type: AAAA
+      value: "{{ public_ipv6 }}"
+      account_email: "{{ cloudflare_email }}"
+      account_api_token: "{{ cloudflare_token }}"
