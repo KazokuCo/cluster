@@ -1,0 +1,66 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: default-backend-www
+  namespace: nginx-ingress
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>No matching backend</title>
+      <style>
+      .container { max-width:600px; margin:auto; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+      <h1>No matching backend.</h1>
+      <p>Unfortunately, you appear to have fallen through the cracks and ended up somewhere that has no backend wired up to it. Please email <a href="mailto:admin@kazoku.co">admin@kazoku.co</a> and tell us how you got here.</p>
+    </body>
+    </html>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: default-backend
+  namespace: nginx-ingress
+spec:
+  selector:
+    app: default-backend
+  ports:
+  - port: 80
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: default-backend
+  namespace: nginx-ingress
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: default-backend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        imagePullPolicy: Always
+        env:
+        - name: BUMP
+          value: "1"
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          httpGet:
+            port: 80
+            path: /
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: www
+        configMap:
+          name: default-backend-www
