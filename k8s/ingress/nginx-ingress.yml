@@ -3,7 +3,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-ingress
-  namespace: nginx-ingress
 data:
   hsts: "true"
   proxy-body-size: 64m
@@ -23,7 +22,6 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: nginx-ingress
-  namespace: nginx-ingress
 spec:
   updateStrategy:
     type: RollingUpdate
@@ -39,7 +37,7 @@ spec:
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
-      serviceAccountName: nginx-ingress-serviceaccount
+      serviceAccountName: nginx-ingress
       containers:
       - name: nginx-ingress
         image: gcr.io/google_containers/nginx-ingress-controller:0.9.0-beta.10
