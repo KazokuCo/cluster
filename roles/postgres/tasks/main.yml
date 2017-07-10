@@ -1,0 +1,31 @@
+---
+- name: add the postgres repo signing key
+  apt_key:
+    state: present
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+
+- name: add the postgres repo
+  apt_repository:
+    state: present
+    repo: deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main
+
+- name: install postgres
+  apt:
+    state: present
+    name: "{{ item }}"
+  with_items:
+  - postgresql-9.6
+
+- name: configure postgresql.conf
+  copy:
+    src: postgresql.conf
+    dest: /etc/postgresql/9.6/main/postgresql.conf
+  notify:
+  - restart postgres
+
+- name: configure pg_hba.conf
+  copy:
+    src: pg_hba.conf
+    dest: /etc/postgresql/9.6/main/pg_hba.conf
+  notify:
+  - restart postgres
