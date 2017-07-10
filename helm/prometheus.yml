@@ -26,7 +26,7 @@ alertmanager:
   ingress:
     ## If true, alertmanager Ingress will be created
     ##
-    enabled: true
+    enabled: false
 
     ## alertmanager Ingress annotations
     ##
@@ -46,7 +46,7 @@ alertmanager:
     tls:
     - secretName: prometheus-alerts-tls
       hosts:
-        - alertmanager.svc.kazoku.co
+      - alertmanager.svc.kazoku.co
 
   ## Node labels for alertmanager pod assignment
   ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
@@ -298,7 +298,7 @@ server:
   ingress:
     ## If true, Prometheus server Ingress will be created
     ##
-    enabled: true
+    enabled: false
 
     ## Prometheus server Ingress annotations
     ##
