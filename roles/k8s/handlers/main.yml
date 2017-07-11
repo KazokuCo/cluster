@@ -1,0 +1,8 @@
+---
+- name: regenerate resolv.conf
+  command: resolvconf -u
+
+- name: restart docker
+  service:
+    name: docker
+    state: restarted

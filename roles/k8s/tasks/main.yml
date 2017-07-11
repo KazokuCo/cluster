@@ -32,3 +32,10 @@
   # systemd: daemon_reload=yes # Ansible 2.4+
   command: systemctl daemon-reload
   when: result|changed
+
+- name: add kube-dns to resolv.conf
+  lineinfile:
+    state: present
+    line: nameserver 10.96.0.10
+    path: /etc/resolvconf/resolv.conf.d/head
+  notify: regenerate resolv.conf
