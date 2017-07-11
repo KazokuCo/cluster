@@ -17,6 +17,15 @@
     - kubernetes-cni
     - kubeadm
 
+- name: configure docker daemon
+  copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      { "insecure-registries": ["registry.default.svc.cluster.local"] }
+  notify: restart docker
+
+- meta: flush_handlers
+
 - name: ensure the kubelet cloud config is present
   template:
     src: cloud-config.ini

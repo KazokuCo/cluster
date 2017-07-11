@@ -13,28 +13,6 @@ spec:
     targetPort: 5000
 ---
 apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: registry
-  annotations:
-    kubernetes.io/tls-acme: "true"
-  labels:
-    app: registry
-spec:
-  tls:
-  - secretName: registry-tls
-    hosts:
-    - registry.svc.kazoku.co
-  rules:
-  - host: registry.svc.kazoku.co
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: registry
-          servicePort: 80
----
-apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: registry
@@ -49,9 +27,11 @@ spec:
     spec:
       containers:
       - name: registry
-        image: registry:2
+        image: registry:2.5
         imagePullPolicy: Always
         env:
+        - name: REGISTRY_LOG_LEVEL
+          value: debug
         - name: REGISTRY_HTTP_ADDR
           value: 0.0.0.0:5000
         - name: REGISTRY_HTTP_HOST
@@ -66,27 +46,39 @@ spec:
         - name: REGISTRY_REDIS_ADDR
           value: redis.svc.default.cluster.local:6379
         - name: REGISTRY_STORAGE
-          value: s3
-        - name: REGISTRY_STORAGE_S3_ACCESSKEY
+          value: swift
+        - name: REGISTRY_STORAGE_SWIFT_CONTAINER
           valueFrom:
             secretKeyRef:
-              name: registry.s3
-              key: access_key_id
-        - name: REGISTRY_STORAGE_S3_SECRETKEY
+              name: registry.swift
+              key: container
+        - name: REGISTRY_STORAGE_SWIFT_REGION
           valueFrom:
             secretKeyRef:
-              name: registry.s3
-              key: secret_access_key
-        - name: REGISTRY_STORAGE_S3_REGION
-          valueFrom:
-            secretKeyRef:
-              name: registry.s3
+              name: registry.swift
               key: region
-        - name: REGISTRY_STORAGE_S3_BUCKET
+        - name: REGISTRY_STORAGE_SWIFT_AUTHURL
           valueFrom:
             secretKeyRef:
-              name: registry.s3
-              key: bucket
+              name: openstack
+              key: auth_url
+        - name: REGISTRY_STORAGE_SWIFT_TENANTID
+          valueFrom:
+            secretKeyRef:
+              name: openstack
+              key: tenant_id
+        - name: REGISTRY_STORAGE_SWIFT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: openstack
+              key: username
+        - name: REGISTRY_STORAGE_SWIFT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: openstack
+              key: password
+        - name: REGISTRY_STORAGE_SWIFT_ROOTDIRECTORY
+          value: /
         - name: REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR
           value: redis
         livenessProbe:
