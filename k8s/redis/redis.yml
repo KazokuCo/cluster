@@ -37,11 +37,24 @@ spec:
       - name: redis
         image: redis:3.2-alpine
         imagePullPolicy: Always
-        command: [
-          redis-server,
-          --appendonly, "yes",
-          --save, "60", "1000",
-        ]
+        command:
+        - sh
+        - -exc
+        - |
+          if [ $(hostname) != "${SERVICE}-0" ]; then
+            SLAVEOF="--slaveof ${SERVICE}-0.${SERVICE}.${NAMESPACE} 6379"
+          fi
+          redis-server ${SLAVEOF} \
+            --protected-mode no \
+            --appendonly yes\
+            --save 60 1000
+        env:
+        - name: SERVICE
+          value: redis
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         ports:
         - name: redis
           containerPort: 6379
@@ -61,7 +74,24 @@ spec:
       - name: sentinel
         image: redis:3.2-alpine
         imagePullPolicy: Always
-        command: [sh, -c, "touch sentinel.conf && exec redis-sentinel sentinel.conf"]
+        command:
+        - sh
+        - -c
+        - |
+          cat <<EOF > sentinel.conf
+          sentinel monitor master ${SERVICE}-0.${SERVICE}.${NAMESPACE} 6379 2
+          sentinel down-after-milliseconds master 60000
+          sentinel failover-timeout master 60000
+          sentinel parallel-syncs master 1
+          EOF
+          exec redis-sentinel sentinel.conf
+        env:
+        - name: SERVICE
+          value: redis
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         ports:
         - name: sentinel
           containerPort: 26379
@@ -75,45 +105,6 @@ spec:
           requests:
             cpu: 100m
             memory: 50Mi
-      - name: sidecar
-        image: redis:3.2-alpine
-        imagePullPolicy: Always
-        command:
-        - sh
-        - -c
-        - |
-          apk update
-          apk add bash wget ca-certificates bind-tools
-
-          wget -q https://dl.k8s.io/pets/peer-finder -O /bin/peer-finder
-          chmod +x /bin/peer-finder
-
-          cat << 'EOF' > handler.sh
-            #!/bin/bash
-            set -x
-            while read -r line; do
-              name=$(echo ${line} | cut -d . -f 1)
-              ip=$(dig ${line} +short)
-              redis-cli -p 26379 sentinel monitor ${name} ${ip} 6379 2
-              redis-cli -p 26379 sentinel set ${name} down-after-milliseconds 10000
-              redis-cli -p 26379 sentinel set ${name} failover-timeout 60000
-              redis-cli -p 26379 sentinel set ${name} parallel-syncs 1
-            done
-          EOF
-          chmod +x handler.sh
-
-          peer-finder -on-start ./handler.sh -on-change ./handler.sh -service ${SERVICE} -ns ${POD_NAMESPACE}
-        env:
-        - name: SERVICE
-          value: redis
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-        resources:
-          requests:
-            cpu: 10m
-            memory: 10Mi
   volumeClaimTemplates:
   - metadata:
       name: data
