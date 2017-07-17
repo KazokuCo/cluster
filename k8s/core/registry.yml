@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
       - name: registry
-        image: registry:2.5
+        image: registry:2
         imagePullPolicy: Always
         env:
         - name: REGISTRY_LOG_LEVEL
@@ -35,7 +35,7 @@ spec:
         - name: REGISTRY_HTTP_ADDR
           value: 0.0.0.0:5000
         - name: REGISTRY_HTTP_HOST
-          value: https://registry.svc.kazoku.co
+          value: http://registry.default.svc.cluster.local
         - name: REGISTRY_HTTP_SECRET
           valueFrom:
             secretKeyRef:
@@ -43,8 +43,8 @@ spec:
               key: secret
         - name: REGISTRY_HTTP_DEBUG_ADDR
           value: 0.0.0.0:5001
-        - name: REGISTRY_REDIS_ADDR
-          value: redis.svc.default.cluster.local:6379
+        # - name: REGISTRY_REDIS_ADDR
+        #   value: redis.svc.default.cluster.local:6379
         - name: REGISTRY_STORAGE
           value: swift
         - name: REGISTRY_STORAGE_SWIFT_CONTAINER
@@ -80,7 +80,12 @@ spec:
         - name: REGISTRY_STORAGE_SWIFT_ROOTDIRECTORY
           value: /
         - name: REGISTRY_STORAGE_CACHE_BLOBDESCRIPTOR
-          value: redis
+          value: inmemory
+        ports:
+        - name: http
+          containerPort: 5000
+        - name: debug
+          containerPort: 5001
         livenessProbe:
           httpGet:
             path: /debug/health
