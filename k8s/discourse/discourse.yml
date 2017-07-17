@@ -1,0 +1,214 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discourse
+  labels:
+    app: discourse
+spec:
+  selector:
+    app: discourse
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: discourse
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: discourse
+spec:
+  tls:
+  - secretName: discourse-tls
+    hosts:
+    - forum.test.kazamatsuri.org
+    - forum.test.rokkenjima.org
+  rules:
+  - host: forum.test.kazamatsuri.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: discourse
+          servicePort: 80
+  - host: forum.test.rokkenjima.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: discourse
+          servicePort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: discourse
+  labels:
+    app: discourse
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: discourse
+    spec:
+      nodeSelector:
+        kind: cpu
+      containers:
+      - name: discourse
+        image: registry.default.svc.cluster.local/local_discourse/web:v1.9.0.beta4
+        command:
+        - bash
+        - -c
+        - |
+          set -e
+
+          # Discourse doesn't run as root, but that's what external mounts are mounted as.
+          # Technically only needed for the first upload or backup for each forum.
+          chown discourse:www-data /shared/{uploads,backups}
+
+          # Function to wait for a log file to be created, then tail it.
+          function track_log {
+            until [[ -f $1 ]]; do sleep 1; done
+            tail -f $1
+          }
+
+          # Track all log files into 'kubectl logs', then boot up Discourse.
+          track_log /shared/log/rails/production.log &
+          track_log /shared/log/rails/unicorn.stdout.log &
+          track_log /shared/log/rails/unicorn.stderr.log &
+          /sbin/boot
+          ls -lR /shared/log
+        env:
+        - name: RAILS_ENV
+          value: production
+        - name: UNICORN_WORKERS
+          value: "3"
+        - name: UNICORN_SIDEKIQS
+          value: "1"
+        - name: RUBY_GLOBAL_METHOD_CACHE_SIZE
+          value: "131072"
+        - name: RUBY_GC_HEAP_GROWTH_MAX_SLOTS
+          value: "40000"
+        - name: RUBY_GC_HEAP_INIT_SLOTS
+          value: "400000"
+        - name: RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR
+          value: "1.5"
+        - name: DISCOURSE_DEVELOPER_EMAILS
+          value: emily@kazoku.co
+        - name: DISCOURSE_HOSTNAME
+          value: forum.kazamatsuri.org
+        - name: DISCOURSE_BACKUP_HOSTNAME
+          value: forum.test.kazamatsuri.org
+        - name: DISCOURSE_DB_HOST
+          value: postgresql.default.svc.cluster.local
+        - name: DISCOURSE_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: db.name
+        - name: DISCOURSE_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: db.username
+        - name: DISCOURSE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: db.password
+        - name: DISCOURSE_DB_POOL
+          value: "50"
+        - name: DISCOURSE_DB_TIMEOUT
+          value: "5000"
+        - name: DISCOURSE_REDIS_HOST
+          value: redis
+        - name: DISCOURSE_REDIS_SENTINELS_FROM
+          value: redis-sentinel.default.svc.cluster.local
+        - name: DISCOURSE_REDIS_SENTINELS_PORT
+          value: "26379"
+        - name: DISCOURSE_REDIS_DB
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: redis.db
+        - name: DISCOURSE_SMTP_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: host
+        - name: DISCOURSE_SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: port
+        - name: DISCOURSE_SMTP_USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: username
+        - name: DISCOURSE_SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: password
+        - name: DISCOURSE_ROKKENJIMA_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: db.name
+        - name: DISCOURSE_ROKKENJIMA_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: db.username
+        - name: DISCOURSE_ROKKENJIMA_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: db.password
+        - name: DISCOURSE_ROKKENJIMA_REDIS_DB
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: redis.db
+        resources:
+          requests:
+            cpu: 500m
+            memory: 4Gi
+        ports:
+        - name: http
+          containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+            httpHeaders:
+            - name: Host
+              value: forum.kazamatsuri.org
+          timeoutSeconds: 3
+          periodSeconds: 10
+          successThreshold: 4
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+            httpHeaders:
+            - name: Host
+              value: forum.kazamatsuri.org
+          timeoutSeconds: 3
+          initialDelaySeconds: 40
+          periodSeconds: 10
+        volumeMounts:
+        - name: discourse-uploads
+          mountPath: /shared/uploads
+        - name: discourse-backups
+          mountPath: /shared/backups
+      volumes:
+      - name: discourse-uploads
+        emptyDir: {}
+      - name: discourse-backups
+        emptyDir: {}

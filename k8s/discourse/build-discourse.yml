@@ -1,0 +1,235 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: build-discourse
+spec:
+  template:
+    metadata:
+      name: build-discourse
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: build-discourse
+        image: docker
+        imagePullPolicy: Always
+        command:
+        - sh
+        - -exc
+        - |
+            `which docker` version
+            mkdir /var/lib/docker
+
+            apk update
+            apk add git bash coreutils bind-tools
+
+            export DISCOURSE_REDIS_SENTINELS=$(dig ${DISCOURSE_REDIS_SENTINELS_FROM} +short|xargs -i echo -n "{}:${DISCOURSE_REDIS_SENTINELS_PORT},")
+            export DISCOURSE_REDIS_SENTINELS=${DISCOURSE_REDIS_SENTINELS%?}
+
+            git clone https://github.com/discourse/discourse_docker /opt/discourse_docker
+            cd /opt/discourse_docker
+
+            cat <<EOF > /opt/discourse_docker/containers/web.yml
+            templates:
+              - "templates/web.template.yml"
+              - "templates/web.ratelimited.template.yml"
+
+            params:
+              version: "${DISCOURSE_VERSION}"
+              upload_size: 10m
+              reqs_per_second: 12
+              burst_per_second: 12
+              reqs_per_minute: 200
+              burst_per_minute: 100
+              conn_per_ip: 20
+
+            env:
+              LANG: en_US.UTF-8
+              UNICORN_WORKERS: 2
+              
+              DISCOURSE_DEVELOPER_EMAILS: "${DISCOURSE_DEVELOPER_EMAILS}"
+              DISCOURSE_HOSTNAME: "${DISCOURSE_HOSTNAME}"
+              DISCOURSE_BACKUP_HOSTNAME: "${DISCOURSE_BACKUP_HOSTNAME}"
+              # DISCOURSE_CDN_URL: "${DISCOURSE_CDN_URL}"
+
+              DISCOURSE_DB_HOST: "${DISCOURSE_DB_HOST}"
+              DISCOURSE_DB_NAME: "${DISCOURSE_DB_NAME}"
+              DISCOURSE_DB_USERNAME: "${DISCOURSE_DB_USERNAME}"
+              DISCOURSE_DB_PASSWORD: "${DISCOURSE_DB_PASSWORD}"
+              DISCOURSE_DB_POOL: "${DISCOURSE_DB_POOL}"
+              DISCOURSE_DB_TIMEOUT: "${DISCOURSE_DB_TIMEOUT}"
+              DISCOURSE_REDIS_HOST: "${DISCOURSE_REDIS_HOST}"
+              DISCOURSE_REDIS_SENTINELS: "${DISCOURSE_REDIS_SENTINELS}"
+              DISCOURSE_REDIS_DB: "${DISCOURSE_REDIS_DB}"
+
+              DISCOURSE_SMTP_ADDRESS: "${DISCOURSE_SMTP_ADDRESS}"
+              DISCOURSE_SMTP_PORT: "${DISCOURSE_SMTP_PORT}"
+              DISCOURSE_SMTP_USER_NAME: "${DISCOURSE_SMTP_USER_NAME}"
+              DISCOURSE_SMTP_PASSWORD: "${DISCOURSE_SMTP_PASSWORD}"
+
+            hooks:
+              after_code:
+              - exec:
+                  cd: \$home/plugins
+                  cmd:
+                  # - git clone https://github.com/discourse/docker_manager.git
+                  - git clone https://github.com/discourse/discourse-spoiler-alert.git
+                  - git clone https://github.com/discourse/discourse-bbcode-color.git
+                  - git clone https://github.com/discourse/discourse-staff-notes.git
+                  # - git clone https://github.com/discourse/discourse-presence.git
+                  - git clone https://github.com/vinkas0/discourse-navigation.git
+                  - git clone https://github.com/vinkas0/discourse-branding.git
+                  - git clone https://github.com/tcreativo/plugin_discourse_calendar.git
+                  - git clone https://github.com/pmusaraj/discourse-sidebar-blocks.git
+                  # - git clone https://github.com/davidtaylorhq/discourse-whos-online.git
+                  - git clone https://github.com/gdpelican/retort.git
+                  # - git clone https://github.com/scossar/discourse-twitter-stream.git
+
+              before_bundle_exec:
+              - file:
+                  path: \$home/config/multisite.yml
+                  contents: |
+                    rokkenjima:
+                      adapter: postgresql
+                      database: ${DISCOURSE_ROKKENJIMA_DB_NAME}
+                      username: ${DISCOURSE_ROKKENJIMA_DB_USERNAME}
+                      password: ${DISCOURSE_ROKKENJIMA_DB_PASSWORD}
+                      host: ${DISCOURSE_DB_HOST}
+                      pool: ${DISCOURSE_DB_POOL}
+                      timeout: ${DISCOURSE_DB_TIMEOUT}
+                      db_id: ${DISCOURSE_ROKKENJIMA_REDIS_DB}
+                      host_names:
+                      - forum.rokkenjima.org
+                      - forum.test.rokkenjima.org
+
+              - exec: cd /var/www/discourse && sudo -E -u discourse bundle install --deployment --verbose --without test --without development
+              - exec: cd /var/www/discourse && sudo -E -u discourse bundle exec rake multisite:migrate
+
+              after_web_config:
+              - replace:
+                  filename: /etc/nginx/conf.d/discourse.conf
+                  from: /sendfile on;/
+                  to: |
+                    sendfile on;
+
+                    real_ip_header      X-Forwarded-For;
+                    set_real_ip_from    0.0.0.0/0;
+                    real_ip_recursive   on;
+
+            # run:
+            # - exec: echo "Beginning of custom commands"
+            EOF
+            cat /opt/discourse_docker/containers/web.yml
+
+            ./launcher bootstrap web --docker-args "--dns=10.96.0.10 --cpu-period=100000 --cpu-quota=50000" --skip-mac-address
+
+            IMAGE_HOST=registry.default.svc.cluster.local
+            IMAGE_NAME=local_discourse/web
+            IMAGE_VERSION=${DISCOURSE_VERSION}${DISCOURSE_VERSION_SUFFIX}
+
+            docker tag $IMAGE_NAME $IMAGE_HOST/$IMAGE_NAME:$IMAGE_VERSION
+            docker push $IMAGE_HOST/$IMAGE_NAME:$IMAGE_VERSION
+            docker rmi $IMAGE_HOST/$IMAGE_NAME:$IMAGE_VERSION
+
+            docker tag $IMAGE_NAME $IMAGE_HOST/$IMAGE_NAME
+            docker push $IMAGE_HOST/$IMAGE_NAME
+            docker rmi $IMAGE_HOST/$IMAGE_NAME
+
+            docker rmi $IMAGE_NAME
+        env:
+        - name: DOCKER_API_VERSION
+          value: "1.23"
+        - name: DISCOURSE_VERSION
+          value: v1.9.0.beta4
+        - name: DISCOURSE_VERSION_SUFFIX
+          value: ""
+        - name: DISCOURSE_DEVELOPER_EMAILS
+          value: emily@kazoku.co
+        - name: DISCOURSE_HOSTNAME
+          value: forum.kazamatsuri.org
+        - name: DISCOURSE_BACKUP_HOSTNAME
+          value: forum.test.kazamatsuri.org
+        - name: DISCOURSE_DB_HOST
+          value: postgresql.default.svc.cluster.local
+        - name: DISCOURSE_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: db.name
+        - name: DISCOURSE_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: db.username
+        - name: DISCOURSE_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: db.password
+        - name: DISCOURSE_DB_POOL
+          value: "50"
+        - name: DISCOURSE_DB_TIMEOUT
+          value: "5000"
+        - name: DISCOURSE_REDIS_HOST
+          value: redis
+        - name: DISCOURSE_REDIS_SENTINELS_FROM
+          value: redis-sentinel.default.svc.cluster.local
+        - name: DISCOURSE_REDIS_SENTINELS_PORT
+          value: "26379"
+        - name: DISCOURSE_REDIS_DB
+          valueFrom:
+            secretKeyRef:
+              name: discourse.kazamatsuri
+              key: redis.db
+        - name: DISCOURSE_SMTP_ADDRESS
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: host
+        - name: DISCOURSE_SMTP_PORT
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: port
+        - name: DISCOURSE_SMTP_USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: username
+        - name: DISCOURSE_SMTP_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: smtp
+              key: password
+        - name: DISCOURSE_ROKKENJIMA_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: db.name
+        - name: DISCOURSE_ROKKENJIMA_DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: db.username
+        - name: DISCOURSE_ROKKENJIMA_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: db.password
+        - name: DISCOURSE_ROKKENJIMA_REDIS_DB
+          valueFrom:
+            secretKeyRef:
+              name: discourse.rokkenjima
+              key: redis.db
+        volumeMounts:
+        # - name: docker-bin
+        #   mountPath: /usr/local/bin/docker
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      volumes:
+      # - name: docker-bin
+      #   hostPath:
+      #     path: /usr/bin/docker
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
