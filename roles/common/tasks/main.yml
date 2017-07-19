@@ -9,3 +9,19 @@
   - vim
   - tmux
   - git
+
+- name: enable kernel modules
+  modprobe: name={{ item }} state=present
+  with_items:
+  - fuse
+  - dm_thin_pool
+
+- name: add the glusterfs repo
+  apt_repository:
+    repo: ppa:gluster/glusterfs-3.11
+    state: present
+
+- name: install the glusterfs fuse client
+  apt:
+    name: glusterfs-client
+    state: present

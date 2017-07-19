@@ -12,6 +12,28 @@ spec:
   - port: 80
     targetPort: 80
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: discourse-uploads
+spec:
+  storageClassName: shared
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: discourse-backups
+spec:
+  storageClassName: shared
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 2Gi
+---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -209,6 +231,8 @@ spec:
           mountPath: /shared/backups
       volumes:
       - name: discourse-uploads
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: discourse-uploads
       - name: discourse-backups
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: discourse-backups
