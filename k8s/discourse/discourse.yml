@@ -82,6 +82,7 @@ spec:
       containers:
       - name: discourse
         image: registry.default.svc.cluster.local/local_discourse/web:v1.9.0.beta4
+        imagePullPolicy: Always
         command:
         - bash
         - -c
