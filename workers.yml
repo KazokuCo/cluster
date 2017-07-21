@@ -1,7 +1,7 @@
 ---
 - hosts: workers
   roles:
-  - ovh
-  - common
-  - k8s
-  - k8s/node
+  - { role: ovh, tags: [ovh] }
+  - { role: common, tags: [common] }
+  - { role: k8s, tags: [k8s] }
+  - { role: k8s/node, tags: [k8s/node] }
