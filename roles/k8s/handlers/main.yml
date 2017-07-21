@@ -2,7 +2,16 @@
 - name: regenerate resolv.conf
   command: resolvconf -u
 
+- name: reload systemd units
+  # systemd: daemon_reload=yes # Ansible 2.4+
+  command: systemctl daemon-reload
+
 - name: restart docker
   service:
     name: docker
+    state: restarted
+
+- name: restart kubelet
+  service:
+    name: kubelet
     state: restarted

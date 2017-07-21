@@ -16,11 +16,6 @@
   with_items:
   - postgresql-9.5
 
-- name: create the data mountpoint
-  file:
-    path: /data
-    state: directory
-
 - name: configure postgresql.conf
   copy:
     src: postgresql.conf

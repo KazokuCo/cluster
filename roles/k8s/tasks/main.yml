@@ -30,17 +30,23 @@
   template:
     src: cloud-config.ini
     dest: /etc/kubernetes/cloud-config
+  notify: restart kubelet
 
 - name: ensure the kubelet cloud dropin is present
-  copy:
+  template:
     src: 00-cloud.conf
     dest: /etc/systemd/system/kubelet.service.d/00-cloud.conf
-  register: result
+  notify:
+  - reload systemd units
+  - restart kubelet
 
-- name: reload systemd units
-  # systemd: daemon_reload=yes # Ansible 2.4+
-  command: systemctl daemon-reload
-  when: result|changed
+- meta: flush_handlers
+
+- name: make sure kubelet is enabled and running
+  service:
+    name: kubelet
+    state: started
+    enabled: yes
 
 - name: add kube-dns to resolv.conf
   lineinfile:

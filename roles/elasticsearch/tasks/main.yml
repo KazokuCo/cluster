@@ -1,0 +1,72 @@
+---
+- name: add the elastic repo signing key
+  apt_key:
+    state: present
+    url: https://artifacts.elastic.co/GPG-KEY-elasticsearch
+
+- name: add the elastic repo
+  apt_repository:
+    state: present
+    repo: deb https://artifacts.elastic.co/packages/5.x/apt stable main
+
+- name: install elasticsearch
+  apt:
+    state: present
+    name: "{{ item }}"
+  with_items:
+  - openjdk-8-jre-headless
+  - elasticsearch
+
+- name: install elasticsearch x-pack
+  command: /usr/share/elasticsearch/bin/elasticsearch-plugin install x-pack
+  args:
+    creates: /usr/share/elasticsearch/plugins/x-pack
+
+- name: create the elasticsearch data dir
+  file:
+    path: /data/elasticsearch
+    state: directory
+    owner: elasticsearch
+    group: elasticsearch
+
+- name: configure limits for elasticsearch
+  copy:
+    dest: /etc/security/limits.d/elasticsearch.conf
+    content: |
+      elasticsearch soft nofile 65536
+      elasticsearch hard nofile 65536
+  notify: restart elasticsearch
+
+- name: configure /etc/default/elasticsearch
+  copy:
+    src: defaults.sh
+    dest: /etc/default/elasticsearch
+  notify: restart elasticsearch
+
+- name: configure elasticsearch.yml
+  copy:
+    src: elasticsearch.yml
+    dest: /etc/elasticsearch/elasticsearch.yml
+  notify: restart elasticsearch
+
+- name: create elasticsearch dropin directory
+  file:
+    path: /etc/systemd/system/elasticsearch.service.d
+    state: directory
+
+- name: configure elasticsearch dropin
+  copy:
+    src: 00-memlock.conf
+    dest: /etc/systemd/system/elasticsearch.service.d/00-memlock.conf
+  notify: restart elasticsearch
+  register: result
+
+- name: reload systemd units
+  command: systemctl daemon-reload
+  when: result|changed
+
+- name: start and enable elasticsearch
+  service:
+    name: elasticsearch
+    state: started
+    enabled: yes

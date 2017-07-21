@@ -1,6 +1,10 @@
 ---
 - hosts: db
   roles:
-  - ovh
-  - common
-  - postgres
+  - { role: ovh, tags: [ovh] }
+  - { role: common, tags: [common] }
+  - { role: k8s, tags: [k8s] }
+  - { role: k8s/node, tags: [k8s/node] }
+  - { role: data, tags: [data] }
+  - { role: postgres, tags: [postgres] }
+  - { role: elasticsearch, tags: [elasticsearch] }
