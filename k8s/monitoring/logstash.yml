@@ -1,0 +1,75 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+spec:
+  selector:
+    app: logstash
+  ports:
+  - port: 5044
+    targetPort: 5044
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: logstash
+  labels:
+    app: logstash
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 100%
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      # hostNetwork: true
+      # dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: logstash
+        image: registry.default.svc.cluster.local/logstash
+        imagePullPolicy: Always
+        args:
+        - -w
+        - "2"
+        - -f
+        - /dev/null
+        - -e
+        - |
+          input {
+            beats {
+              port => 5044
+            }
+            journald {
+              lowercase => true
+            }
+          }
+          output {
+            elasticsearch {
+              hosts => ["elasticsearch.default.svc.cluster.local:9200"]
+              user => "${ELASTICSEARCH_USERNAME}"
+              password => "${ELASTICSEARCH_PASSWORD}"
+              manage_template => true
+            }
+          }
+        env:
+        - name: ELASTICSEARCH_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch
+              key: username
+        - name: ELASTICSEARCH_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch
+              key: password
+        volumeMounts:
+        - name: journal
+          mountPath: /var/log/journal
+      volumes:
+      - name: journal
+        hostPath:
+          path: /run/log/journal

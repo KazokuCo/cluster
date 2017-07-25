@@ -9,18 +9,27 @@
     state: present
     repo: deb https://artifacts.elastic.co/packages/5.x/apt stable main
 
-- name: install elasticsearch
+# Note: We're not actually using the beats installed here, but installing them through apt-get automatically loads their index templates into elasticsearch.
+- name: install elasticsearch + related packages
   apt:
     state: present
     name: "{{ item }}"
   with_items:
   - openjdk-8-jre-headless
   - elasticsearch
+  - logstash
+  - filebeat
+  - metricbeat
+  - packetbeat
 
-- name: install elasticsearch x-pack
-  command: /usr/share/elasticsearch/bin/elasticsearch-plugin install x-pack
+- name: install elasticsearch plugins
+  command: /usr/share/elasticsearch/bin/elasticsearch-plugin install {{ item }}
   args:
-    creates: /usr/share/elasticsearch/plugins/x-pack
+    creates: /usr/share/elasticsearch/plugins/{{ item }}
+  with_items:
+  - x-pack
+  - ingest-geoip
+  - ingest-user-agent
 
 - name: create the elasticsearch data dir
   file:

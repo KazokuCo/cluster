@@ -121,7 +121,7 @@ spec:
         - name: RUBY_GC_HEAP_OLDOBJECT_LIMIT_FACTOR
           value: "1.5"
         - name: DISCOURSE_DEVELOPER_EMAILS
-          value: emily@kazoku.co
+          value: emily@kazoku.co,uppfinnarn@gmail.com
         - name: DISCOURSE_HOSTNAME
           value: forum.kazamatsuri.org
         - name: DISCOURSE_BACKUP_HOSTNAME
@@ -212,25 +212,48 @@ spec:
             httpHeaders:
             - name: Host
               value: forum.kazamatsuri.org
-          timeoutSeconds: 3
+          timeoutSeconds: 10
           periodSeconds: 10
           successThreshold: 4
-        livenessProbe:
-          httpGet:
-            path: /
-            port: http
-            httpHeaders:
-            - name: Host
-              value: forum.kazamatsuri.org
-          timeoutSeconds: 3
-          initialDelaySeconds: 40
-          periodSeconds: 10
         volumeMounts:
+        - name: nginx-log
+          mountPath: /var/log/nginx
+        - name: discourse-log
+          mountPath: /shared/log
         - name: discourse-uploads
           mountPath: /shared/uploads
         - name: discourse-backups
           mountPath: /shared/backups
+      - name: filebeat
+        image: docker.elastic.co/beats/filebeat:5.5.0
+        imagePullPolicy: Always
+        command:
+        - sh
+        - -exc
+        - |
+          cat <<EOF > /tmp/filebeat.yml
+          filebeat.prospectors:
+          - input_type: log
+            multiline.pattern: '^([[:space:]]|\z)'
+            multiline.negate: false
+            multiline.match: after
+            paths:
+            - /shared/log/rails/unicorn.stderr.log
+            - /shared/log/rails/unicorn.stdout.log
+          output.logstash:
+            hosts: ["logstash.default.svc.cluster.local:5044"]
+          EOF
+          filebeat -e -v -c /tmp/filebeat.yml
+        volumeMounts:
+        - name: nginx-log
+          mountPath: /var/log/nginx
+        - name: discourse-log
+          mountPath: /shared/log
       volumes:
+      - name: nginx-log
+        emptyDir: {}
+      - name: discourse-log
+        emptyDir: {}
       - name: discourse-uploads
         persistentVolumeClaim:
           claimName: discourse-uploads

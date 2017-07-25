@@ -1,4 +1,4 @@
 bootstrap.memory_lock: true
 node.name: ${HOSTNAME}
 path.data: /data/elasticsearch
-network.host: _site_
+network.host: _site_,_local_

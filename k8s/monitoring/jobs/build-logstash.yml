@@ -1,0 +1,39 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: build-logstash
+spec:
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: build
+        image: docker
+        imagePullPolicy: Always
+        command:
+        - sh
+        - -exc
+        - |
+          export DOCKER_API_VERSION=1.23
+          `which docker` version
+
+          mkdir /build
+          cat <<EOF > /build/Dockerfile
+          FROM docker.elastic.co/logstash/logstash:5.5.0
+          RUN logstash-plugin install logstash-input-journald
+          EOF
+
+          docker build --rm -t registry.default.svc.cluster.local/logstash /build
+          docker push registry.default.svc.cluster.local/logstash
+          docker rmi registry.default.svc.cluster.local/logstash
+        volumeMounts:
+        - name: docker-sock
+          mountPath: /var/run/docker.sock
+      volumes:
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
