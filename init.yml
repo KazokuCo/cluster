@@ -1,0 +1,6 @@
+# This requires:
+# ansible_python_interpreter: /usr/bin/python3
+- hosts: all
+  gather_facts: False
+  tasks:
+  - apt: name=python state=installed

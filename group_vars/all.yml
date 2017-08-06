@@ -1,2 +1,5 @@
-k8s_version: v1.7.0
+# ansible_python_interpreter: /usr/bin/python3
+
+k8s_version: 1.7.3
+k8s_deb_version: 1.7.3-01
 k8s_master_host: k8s.kazoku.co
