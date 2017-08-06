@@ -21,7 +21,7 @@ spec:
   accessModes: [ReadWriteMany]
   resources:
     requests:
-      storage: 2Gi
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -32,7 +32,7 @@ spec:
   accessModes: [ReadWriteMany]
   resources:
     requests:
-      storage: 2Gi
+      storage: 1Gi
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
@@ -88,6 +88,9 @@ spec:
         - -c
         - |
           set -e
+
+          # Grab all redis sentinels from DNS, specifying all of them in an env is a pain.
+           export DISCOURSE_REDIS_SENTINELS=$(dig ${DISCOURSE_REDIS_SENTINELS_FROM} +short|xargs -i echo -n "{}:${DISCOURSE_REDIS_SENTINELS_PORT},")
 
           # Discourse doesn't run as root, but that's what external mounts are mounted as.
           # Technically only needed for the first upload or backup for each forum.

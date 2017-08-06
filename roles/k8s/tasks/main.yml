@@ -13,9 +13,9 @@
   apt: name={{ item }} state=installed
   with_items:
     - docker-engine
-    - kubelet
     - kubernetes-cni
-    - kubeadm
+    - kubelet={{ k8s_deb_version }}
+    - kubeadm={{ k8s_deb_version }}
 
 - name: configure docker daemon
   copy:
