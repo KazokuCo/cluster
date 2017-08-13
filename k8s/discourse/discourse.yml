@@ -1,4 +1,3 @@
----
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,58 +10,6 @@ spec:
   ports:
   - port: 80
     targetPort: 80
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: discourse-uploads
-spec:
-  storageClassName: shared
-  accessModes: [ReadWriteMany]
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: discourse-backups
-spec:
-  storageClassName: shared
-  accessModes: [ReadWriteMany]
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: discourse
-  annotations:
-    kubernetes.io/tls-acme: "true"
-  labels:
-    app: discourse
-spec:
-  tls:
-  - secretName: discourse-tls
-    hosts:
-    - forum.test.kazamatsuri.org
-    - forum.test.rokkenjima.org
-  rules:
-  - host: forum.test.kazamatsuri.org
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: discourse
-          servicePort: 80
-  - host: forum.test.rokkenjima.org
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: discourse
-          servicePort: 80
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -81,7 +28,7 @@ spec:
         kind: cpu
       containers:
       - name: discourse
-        image: registry.default.svc.cluster.local/local_discourse/web:v1.9.0.beta4
+        image: registry.default.svc.cluster.local/local_discourse/web:v1.9.0.beta5
         imagePullPolicy: Always
         command:
         - bash
@@ -89,12 +36,14 @@ spec:
         - |
           set -e
 
-          # Grab all redis sentinels from DNS, specifying all of them in an env is a pain.
-           export DISCOURSE_REDIS_SENTINELS=$(dig ${DISCOURSE_REDIS_SENTINELS_FROM} +short|xargs -i echo -n "{}:${DISCOURSE_REDIS_SENTINELS_PORT},")
+          # Just... stuff backups into the upload container. I hate storage servers, so much.
+          rmdir /shared/backups
+          mkdir -p /shared/uploads/_backups
+          ln -s /shared/uploads/_backups /shared/backups
 
           # Discourse doesn't run as root, but that's what external mounts are mounted as.
           # Technically only needed for the first upload or backup for each forum.
-          chown discourse:www-data /shared/{uploads,backups}
+          chown discourse:www-data /shared/{uploads,uploads/_backups,backups}
 
           # Function to wait for a log file to be created, then tail it.
           function track_log {
@@ -112,7 +61,7 @@ spec:
         - name: RAILS_ENV
           value: production
         - name: UNICORN_WORKERS
-          value: "3"
+          value: "2"
         - name: UNICORN_SIDEKIQS
           value: "1"
         - name: RUBY_GLOBAL_METHOD_CACHE_SIZE
@@ -151,11 +100,9 @@ spec:
         - name: DISCOURSE_DB_TIMEOUT
           value: "5000"
         - name: DISCOURSE_REDIS_HOST
-          value: redis
-        - name: DISCOURSE_REDIS_SENTINELS_FROM
-          value: redis-sentinel.default.svc.cluster.local
-        - name: DISCOURSE_REDIS_SENTINELS_PORT
-          value: "26379"
+          value: redis.default.svc.cluster.local
+        - name: DISCOURSE_REDIS_PORT
+          value: "6379"
         - name: DISCOURSE_REDIS_DB
           valueFrom:
             secretKeyRef:
@@ -208,6 +155,10 @@ spec:
         ports:
         - name: http
           containerPort: 80
+        # two discourse containers absolutely must not run on the same host
+        - name: no-colocate
+          containerPort: 6969
+          hostPort: 6969
         readinessProbe:
           httpGet:
             path: /
@@ -225,41 +176,56 @@ spec:
           mountPath: /shared/log
         - name: discourse-uploads
           mountPath: /shared/uploads
-        - name: discourse-backups
-          mountPath: /shared/backups
-      - name: filebeat
-        image: docker.elastic.co/beats/filebeat:5.5.0
-        imagePullPolicy: Always
-        command:
-        - sh
-        - -exc
-        - |
-          cat <<EOF > /tmp/filebeat.yml
-          filebeat.prospectors:
-          - input_type: log
-            multiline.pattern: '^([[:space:]]|\z)'
-            multiline.negate: false
-            multiline.match: after
-            paths:
-            - /shared/log/rails/unicorn.stderr.log
-            - /shared/log/rails/unicorn.stdout.log
-          output.logstash:
-            hosts: ["logstash.default.svc.cluster.local:5044"]
-          EOF
-          filebeat -e -v -c /tmp/filebeat.yml
-        volumeMounts:
-        - name: nginx-log
-          mountPath: /var/log/nginx
-        - name: discourse-log
-          mountPath: /shared/log
+        # - name: discourse-backups
+        #   mountPath: /shared/backups
+      # - name: filebeat
+      #   image: docker.elastic.co/beats/filebeat:5.5.0
+      #   imagePullPolicy: Always
+      #   command:
+      #   - sh
+      #   - -exc
+      #   - |
+      #     cat <<EOF > /tmp/filebeat.yml
+      #     filebeat.prospectors:
+      #     - input_type: log
+      #       multiline.pattern: '^([[:space:]]|\z)'
+      #       multiline.negate: false
+      #       multiline.match: after
+      #       paths:
+      #       - /shared/log/rails/unicorn.stderr.log
+      #       - /shared/log/rails/unicorn.stdout.log
+      #     output.logstash:
+      #       hosts: ["logstash.default.svc.cluster.local:5044"]
+      #     EOF
+      #     filebeat -e -v -c /tmp/filebeat.yml
+      #   volumeMounts:
+      #   - name: nginx-log
+      #     mountPath: /var/log/nginx
+      #   - name: discourse-log
+      #     mountPath: /shared/log
       volumes:
       - name: nginx-log
         emptyDir: {}
       - name: discourse-log
         emptyDir: {}
       - name: discourse-uploads
-        persistentVolumeClaim:
-          claimName: discourse-uploads
-      - name: discourse-backups
-        persistentVolumeClaim:
-          claimName: discourse-backups
+        cephfs:
+          monitors:
+          - rook-ceph-mon0.kube-system.svc.cluster.local:6790
+          - rook-ceph-mon1.kube-system.svc.cluster.local:6790
+          - rook-ceph-mon2.kube-system.svc.cluster.local:6790
+          user: admin
+          secretRef:
+            name: rook-admin
+      # - name: discourse-uploads
+      #   flexVolume:
+      #     driver: kazokuco/svfs
+      #     fsType: svfs
+      #     options:
+      #       container: discourse-uploads
+      # - name: discourse-backups
+      #   flexVolume:
+      #     driver: kazokuco/svfs
+      #     fsType: svfs
+      #     options:
+      #       container: discourse-backups

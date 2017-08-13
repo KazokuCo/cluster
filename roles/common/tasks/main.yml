@@ -9,18 +9,9 @@
   - vim
   - tmux
   - git
+  - jq
 
-# - name: enable kernel modules
-#   modprobe: name={{ item }} state=present
-#   with_items:
-#   - dm_thin_pool
-
-# - name: add the glusterfs repo
-#   apt_repository:
-#     repo: ppa:gluster/glusterfs-3.11
-#     state: present
-
-# - name: install the glusterfs fuse client
-#   apt:
-#     name: glusterfs-client
-#     state: present
+- name: create the data mountpoint
+  file:
+    path: /data
+    state: directory

@@ -1,0 +1,20 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: rook-operator
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: rook-operator
+    spec:
+      serviceAccountName: rook-operator
+      containers:
+      - name: rook-operator
+        image: rook/rook:master
+        args: ["operator"]
+        env:
+        - name: ROOK_REPO_PREFIX
+          value: rook

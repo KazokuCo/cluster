@@ -3,13 +3,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kube-lego
-  namespace: ingress
+  namespace: kube-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: kube-lego
-  namespace: ingress
+  namespace: kube-system
 rules:
 - apiGroups:
   - ""
@@ -65,7 +65,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: kube-lego
-  namespace: ingress
+  namespace: kube-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -73,4 +73,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kube-lego
-  namespace: ingress
+  namespace: kube-system

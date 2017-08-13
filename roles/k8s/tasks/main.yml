@@ -8,6 +8,13 @@
 - name: ensure the k8s repo is available
   apt_repository:
     repo: deb http://apt.kubernetes.io/ kubernetes-{{ ansible_distribution_release }} main
+    state: present
+
+- name: install ceph
+  apt: name={{ item }} state=installed
+  with_items:
+  - ceph-common
+  - ceph-fs-common
 
 - name: ensure kubernetes packages are installed
   apt: name={{ item }} state=installed
@@ -25,6 +32,11 @@
   notify: restart docker
 
 - meta: flush_handlers
+
+- name: ensure the kubelet cloud env vars are present
+  template:
+    src: cloud-config.sh
+    dest: /etc/kubernetes/cloud-config.sh
 
 - name: ensure the kubelet cloud config is present
   template:

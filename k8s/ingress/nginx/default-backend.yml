@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: default-backend-www
-  namespace: ingress
+  namespace: kube-system
 data:
   index.html: |
     <!DOCTYPE html>
@@ -25,7 +25,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: default-backend
-  namespace: ingress
+  namespace: kube-system
 spec:
   selector:
     app: default-backend
@@ -36,7 +36,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: default-backend
-  namespace: ingress
+  namespace: kube-system
 spec:
   replicas: 2
   template:

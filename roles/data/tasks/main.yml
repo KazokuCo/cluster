@@ -1,5 +1,0 @@
----
-- name: create the data mountpoint
-  file:
-    path: /data
-    state: directory

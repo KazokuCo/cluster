@@ -1,0 +1,7 @@
+- name: reload systemd units
+  command: systemctl daemon-reload
+
+- name: restart redis
+  service:
+    name: redis-server
+    state: restarted

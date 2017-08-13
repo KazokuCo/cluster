@@ -118,9 +118,7 @@ spec:
         - name: GF_AUTH_BASIC_ENABLED
           value: "false"
         - name: GF_SESSION_PROVIDER
-          value: redis
-        - name: GF_SESSION_PROVIDER_CONFIG
-          value: addr=redis:6379,pool_size=100,prefix=grafana
+          value: memory
         - name: GF_LOG_MODE
           value: console
         livenessProbe:

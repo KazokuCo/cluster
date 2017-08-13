@@ -1,0 +1,87 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: discourse-kazamatsuri
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: discourse
+spec:
+  tls:
+  - secretName: discourse-kazamatsuri-tls
+    hosts:
+    - forum.kazamatsuri.org
+  rules:
+  - host: forum.kazamatsuri.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: discourse
+          servicePort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: discourse-kazamatsuri-test
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: discourse
+spec:
+  tls:
+  - secretName: discourse-kazamatsuri-test-tls
+    hosts:
+    - forum.test.kazamatsuri.org
+  rules:
+  - host: forum.test.kazamatsuri.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: discourse
+          servicePort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: discourse-rokkenjima
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: discourse
+spec:
+  tls:
+  - secretName: discourse-rokkenjima-tls
+    hosts:
+    - forum.rokkenjima.org
+  rules:
+  - host: forum.rokkenjima.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: discourse
+          servicePort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: discourse-rokkenjima-test
+  annotations:
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: discourse
+spec:
+  tls:
+  - secretName: discourse-rokkenjima-test-tls
+    hosts:
+    - forum.test.rokkenjima.org
+  rules:
+  - host: forum.test.rokkenjima.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: discourse
+          servicePort: 80

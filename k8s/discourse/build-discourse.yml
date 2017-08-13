@@ -23,9 +23,6 @@ spec:
             apk update
             apk add git bash coreutils bind-tools
 
-            export DISCOURSE_REDIS_SENTINELS=$(dig ${DISCOURSE_REDIS_SENTINELS_FROM} +short|xargs -i echo -n "{}:${DISCOURSE_REDIS_SENTINELS_PORT},")
-            export DISCOURSE_REDIS_SENTINELS=${DISCOURSE_REDIS_SENTINELS%?}
-
             git clone https://github.com/discourse/discourse_docker /opt/discourse_docker
             cd /opt/discourse_docker
 
@@ -140,7 +137,7 @@ spec:
         - name: DOCKER_API_VERSION
           value: "1.23"
         - name: DISCOURSE_VERSION
-          value: v1.9.0.beta4
+          value: v1.9.0.beta5
         - name: DISCOURSE_VERSION_SUFFIX
           value: ""
         - name: DISCOURSE_DEVELOPER_EMAILS
@@ -171,11 +168,9 @@ spec:
         - name: DISCOURSE_DB_TIMEOUT
           value: "5000"
         - name: DISCOURSE_REDIS_HOST
-          value: redis
-        - name: DISCOURSE_REDIS_SENTINELS_FROM
-          value: redis-sentinel.default.svc.cluster.local
-        - name: DISCOURSE_REDIS_SENTINELS_PORT
-          value: "26379"
+          value: redis.default.svc.cluster.local
+        - name: DISCOURSE_REDIS_PORT
+          value: "6379"
         - name: DISCOURSE_REDIS_DB
           valueFrom:
             secretKeyRef:

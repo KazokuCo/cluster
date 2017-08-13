@@ -1,0 +1,35 @@
+- name: create the redis data dir
+  file:
+    path: /data/redis
+    owner: redis
+    group: redis
+    state: directory
+
+- name: add chris lea's redis ppa
+  apt_repository:
+    repo: "ppa:chris-lea/redis-server"
+    state: present
+
+- name: install redis
+  apt:
+    name: redis-server
+    state: present
+
+- name: create redis drop-in dir
+  file:
+    path: /etc/systemd/system/redis-server.service.d
+    state: directory
+
+- name: configure redis drop-in
+  copy:
+    src: 00-allow-data-redis.conf
+    dest: /etc/systemd/system/redis-server.service.d/00-allow-data-redis.conf
+  notify:
+  - reload systemd units
+  - restart redis
+
+- name: configure redis
+  copy:
+    src: redis.conf
+    dest: /etc/redis/redis.conf
+  notify: restart redis

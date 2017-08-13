@@ -5,6 +5,6 @@
   - { role: common, tags: [common] }
   - { role: k8s, tags: [k8s] }
   - { role: k8s/node, tags: [k8s/node] }
-  - { role: data, tags: [data] }
   - { role: postgres, tags: [postgres] }
+  - { role: redis, tags: [redis] }
   - { role: elasticsearch, tags: [elasticsearch] }
