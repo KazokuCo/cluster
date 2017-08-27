@@ -1,4 +1,10 @@
 ---
+- name: allow kube-apiserver through firewall
+  ufw:
+    rule: allow
+    port: 6443
+    proto: tcp
+
 - name: ensure kubeadm.conf is present
   template:
     src: kubeadm.conf.yml

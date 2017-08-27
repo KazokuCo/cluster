@@ -1,43 +1,43 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: discourse-kazamatsuri
+  name: kakera-kazamatsuri
   annotations:
     kubernetes.io/tls-acme: "true"
   labels:
-    app: discourse
+    app: kakera
 spec:
   tls:
-  - secretName: discourse-kazamatsuri-tls
+  - secretName: kakera-kazamatsuri-tls
     hosts:
-    - forum.kazamatsuri.org
+    - kazamatsuri.org
   rules:
-  - host: forum.kazamatsuri.org
+  - host: kazamatsuri.org
     http:
       paths:
       - path: /
         backend:
-          serviceName: discourse
+          serviceName: kakera
           servicePort: 80
 ---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: discourse-rokkenjima
+  name: kakera-rokkenjima
   annotations:
     kubernetes.io/tls-acme: "true"
   labels:
-    app: discourse
+    app: kakera
 spec:
   tls:
-  - secretName: discourse-rokkenjima-tls
+  - secretName: kakera-rokkenjima-tls
     hosts:
-    - forum.rokkenjima.org
+    - rokkenjima.org
   rules:
-  - host: forum.rokkenjima.org
+  - host: rokkenjima.org
     http:
       paths:
       - path: /
         backend:
-          serviceName: discourse
+          serviceName: kakera
           servicePort: 80

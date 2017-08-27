@@ -21,7 +21,7 @@
     state: directory
 
 - name: configure redis drop-in
-  copy:
+  template:
     src: 00-allow-data-redis.conf
     dest: /etc/systemd/system/redis-server.service.d/00-allow-data-redis.conf
   notify:
@@ -29,7 +29,7 @@
   - restart redis
 
 - name: configure redis
-  copy:
+  template:
     src: redis.conf
     dest: /etc/redis/redis.conf
   notify: restart redis

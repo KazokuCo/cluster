@@ -28,7 +28,10 @@
   copy:
     dest: /etc/docker/daemon.json
     content: |
-      { "insecure-registries": ["registry.default.svc.cluster.local"] }
+      {
+        "dns": ["10.96.0.10", "8.8.8.8", "8.8.4.4"],
+        "insecure-registries": ["registry.default.svc.cluster.local"]
+      }
   notify: restart docker
 
 - meta: flush_handlers

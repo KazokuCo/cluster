@@ -1,4 +1,34 @@
 ---
+# - name: enable firewall
+#   ufw:
+#     state: enabled
+
+# - name: allow 192.168.0.0/16 through firewall
+#   ufw:
+#     rule: allow
+#     from: 192.168.0.0/16
+
+# - name: allow 172.16.0.0/12 through firewall
+#   ufw:
+#     rule: allow
+#     from: 172.16.0.0/12
+
+# - name: allow 10.0.0.0/8 through firewall
+#   ufw:
+#     rule: allow
+#     from: 10.0.0.0/8
+
+# - name: allow ssh (tcp) through firewall
+#   ufw:
+#     rule: limit
+#     port: ssh
+#     proto: tcp
+
+# - name: set firewall policy
+#   ufw:
+#     state: enabled
+#     policy: reject
+
 - name: ensure apt-transport-https is available
   apt: name=apt-transport-https state=present
 

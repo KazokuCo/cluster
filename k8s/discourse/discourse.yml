@@ -36,6 +36,11 @@ spec:
         - |
           set -e
 
+          # It keeps looking up Redis by DNS and 500's if it can't; cache the IP for them.
+          apt-get update
+          apt-get install -y dnsutils
+          export DISCOURSE_REDIS_HOST=$(dig +short ${DISCOURSE_REDIS_HOST})
+
           # Just... stuff backups into the upload container. I hate storage servers, so much.
           rmdir /shared/backups
           mkdir -p /shared/uploads/_backups
@@ -213,7 +218,7 @@ spec:
           monitors:
           - rook-ceph-mon0.kube-system.svc.cluster.local:6790
           - rook-ceph-mon1.kube-system.svc.cluster.local:6790
-          - rook-ceph-mon2.kube-system.svc.cluster.local:6790
+          - rook-ceph-mon4.kube-system.svc.cluster.local:6790
           user: admin
           secretRef:
             name: rook-admin
