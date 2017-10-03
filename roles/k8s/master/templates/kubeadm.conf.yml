@@ -3,7 +3,7 @@ apiVersion: kubeadm.k8s.io/v1alpha1
 kubernetesVersion: v{{ k8s_version }}
 cloudProvider: openstack
 token: {{ k8s_token }}
-tokenTTL: 0
+tokenTTL: 0s
 api:
   advertiseAddress: {{ k8s_master }}
 networking:
