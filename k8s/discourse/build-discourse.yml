@@ -11,14 +11,13 @@ spec:
       restartPolicy: Never
       containers:
       - name: build-discourse
-        image: docker
+        image: docker:17.06.2-ce
         imagePullPolicy: Always
         command:
         - sh
         - -exc
         - |
             `which docker` version
-            mkdir /var/lib/docker
 
             apk update
             apk add git bash coreutils bind-tools
@@ -118,7 +117,8 @@ spec:
             EOF
             cat /opt/discourse_docker/containers/web.yml
 
-            ./launcher bootstrap web --docker-args "--dns=10.96.0.10 --cpu-period=100000 --cpu-quota=50000" --skip-mac-address
+            mkdir /var/lib/docker
+            ./launcher bootstrap web --docker-args "--dns=10.96.0.10 --cpu-period=100000 --cpu-quota=50000"
 
             IMAGE_HOST=registry.default.svc.cluster.local
             IMAGE_NAME=local_discourse/web
