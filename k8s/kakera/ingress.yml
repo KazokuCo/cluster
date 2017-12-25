@@ -11,8 +11,16 @@ spec:
   - secretName: kakera-kazamatsuri-tls
     hosts:
     - kazamatsuri.org
+    - test.kazamatsuri.org
   rules:
   - host: kazamatsuri.org
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kakera
+          servicePort: 80
+  - host: test.kazamatsuri.org
     http:
       paths:
       - path: /

@@ -39,10 +39,9 @@
     dest: "{{ ansible_env.PWD }}/.kube/config"
     owner: "{{ ansible_env.SUDO_USER }}"
 
-- name: register flannel resources
-  shell: "curl -sSL {{ item }} | kubectl apply -f -"
-  register: result
-  changed_when: '"changed" in result.stdout or "created" in result.stdout'
-  with_items:
-    - https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel-rbac.yml
-    - https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+# - name: register flannel resources
+#   shell: "curl -sSL {{ item }} | kubectl apply -f -"
+#   register: result
+#   changed_when: '"changed" in result.stdout or "created" in result.stdout'
+#   with_items:
+#     - https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml

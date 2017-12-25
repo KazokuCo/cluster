@@ -138,7 +138,7 @@ spec:
         - name: DOCKER_API_VERSION
           value: "1.23"
         - name: DISCOURSE_VERSION
-          value: v1.9.0.beta11
+          value: v1.9.0.beta14
         - name: DISCOURSE_VERSION_SUFFIX
           value: ""
         - name: DISCOURSE_DEVELOPER_EMAILS

@@ -57,7 +57,7 @@ data:
 
       server {
         listen       80 default_server;
-        server_name  kazamatsuri.org new.kazamatsuri.org;
+        server_name  kazamatsuri.org test.kazamatsuri.org;
         root         /srv/www;
 
         include kakera.inc.conf;
@@ -76,7 +76,7 @@ data:
 
       server {
         listen       80;
-        server_name  rokkenjima.org new.rokkenjima.org;
+        server_name  rokkenjima.org test.rokkenjima.org;
         root         /srv/www;
 
         include kakera.inc.conf;

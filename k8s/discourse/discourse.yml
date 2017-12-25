@@ -28,7 +28,7 @@ spec:
         kind: cpu
       containers:
       - name: discourse
-        image: registry.default.svc.cluster.local/local_discourse/web:v1.9.0.beta11
+        image: registry.default.svc.cluster.local/local_discourse/web:v1.9.0.beta14
         imagePullPolicy: Always
         command:
         - bash
@@ -217,8 +217,8 @@ spec:
         cephfs:
           monitors:
           - rook-ceph-mon0.kube-system.svc.cluster.local:6790
-          - rook-ceph-mon1.kube-system.svc.cluster.local:6790
           - rook-ceph-mon5.kube-system.svc.cluster.local:6790
+          - rook-ceph-mon6.kube-system.svc.cluster.local:6790
           user: admin
           secretRef:
             name: rook-admin
