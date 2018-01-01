@@ -42,13 +42,13 @@ spec:
           export DISCOURSE_REDIS_HOST=$(dig +short ${DISCOURSE_REDIS_HOST})
 
           # Just... stuff backups into the upload container. I hate storage servers, so much.
-          rmdir /shared/backups
-          mkdir -p /shared/uploads/_backups
-          ln -s /shared/uploads/_backups /shared/backups
+          # rmdir /shared/backups
+          # mkdir -p /shared/uploads/_backups
+          # ln -s /shared/uploads/_backups /shared/backups
 
           # Discourse doesn't run as root, but that's what external mounts are mounted as.
           # Technically only needed for the first upload or backup for each forum.
-          chown discourse:www-data /shared/{uploads,uploads/_backups,backups}
+          chown -R discourse:www-data /shared/{uploads,backups}
 
           # Function to wait for a log file to be created, then tail it.
           function track_log {
@@ -181,8 +181,8 @@ spec:
           mountPath: /shared/log
         - name: discourse-uploads
           mountPath: /shared/uploads
-        # - name: discourse-backups
-        #   mountPath: /shared/backups
+        - name: discourse-backups
+          mountPath: /shared/backups
       # - name: filebeat
       #   image: docker.elastic.co/beats/filebeat:5.5.0
       #   imagePullPolicy: Always
@@ -214,14 +214,21 @@ spec:
       - name: discourse-log
         emptyDir: {}
       - name: discourse-uploads
-        cephfs:
-          monitors:
-          - rook-ceph-mon0.kube-system.svc.cluster.local:6790
-          - rook-ceph-mon5.kube-system.svc.cluster.local:6790
-          - rook-ceph-mon6.kube-system.svc.cluster.local:6790
-          user: admin
-          secretRef:
-            name: rook-admin
+        glusterfs:
+          endpoints: glusterfs
+          path: discourse-uploads
+      - name: discourse-backups
+        glusterfs:
+          endpoints: glusterfs
+          path: discourse-backups
+        # cephfs:
+        #   monitors:
+        #   - rook-ceph-mon5.kube-system.svc.cluster.local:6790
+        #   - rook-ceph-mon6.kube-system.svc.cluster.local:6790
+        #   - rook-ceph-mon8.kube-system.svc.cluster.local:6790
+        #   user: admin
+        #   secretRef:
+        #     name: rook-admin
       # - name: discourse-uploads
       #   flexVolume:
       #     driver: kazokuco/svfs

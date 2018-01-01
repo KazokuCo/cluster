@@ -1,0 +1,8 @@
+kind: Endpoints
+apiVersion: v1
+metadata:
+  name: glusterfs
+subsets:
+- { addresses: [{ ip: 192.168.0.6 }], ports: [{ port: 1 }] } # kengo
+- { addresses: [{ ip: 192.168.0.7 }], ports: [{ port: 1 }] } # masato
+- { addresses: [{ ip: 192.168.0.8 }], ports: [{ port: 1 }] } # riki

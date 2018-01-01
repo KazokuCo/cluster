@@ -1,0 +1,5 @@
+- name: add glusterfs repo
+  apt_repository: repo=ppa:gluster/glusterfs-{{ glusterfs_version }} state=present
+
+- name: install the glusterfs client
+  apt: name=glusterfs-client state=present

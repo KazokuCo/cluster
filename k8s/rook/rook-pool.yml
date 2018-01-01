@@ -1,8 +1,0 @@
-apiVersion: rook.io/v1alpha1
-kind: Pool
-metadata:
-  name: pool
-  namespace: kube-system
-spec:
-  replication:
-    size: 3

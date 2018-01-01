@@ -1,0 +1,24 @@
+- name: install the glusterfs server
+  apt: name=glusterfs-server state=present
+
+- name: start the glusterfs server
+  service:
+    name: glusterd
+    state: started
+    enabled: yes
+
+- name: create glusterfs brick dirs
+  file:
+    path: /data/glusterfs/{{ item }}/bricks/brick1
+    state: directory
+  with_items: "{{ glusterfs_volumes }}"
+
+- name: create glusterfs volumes
+  gluster_volume:
+    state: present
+    name: "{{ item }}"
+    bricks: "/data/glusterfs/{{ item }}/bricks/brick1"
+    cluster: "{{ groups['workers'] }}"
+    replicas: "{{ groups['workers']|length }}"
+  with_items: "{{ glusterfs_volumes }}"
+  run_once: true

@@ -3,5 +3,7 @@
   roles:
   - { role: ovh, tags: [ovh] }
   - { role: common, tags: [common] }
+  - { role: glusterfs, tags: [glusterfs] }
+  - { role: glusterfs/server, tags: [glusterfs, glusterfs/server] }
   - { role: k8s, tags: [k8s] }
-  - { role: k8s/node, tags: [k8s/node] }
+  - { role: k8s/node, tags: [k8s, k8s/node] }

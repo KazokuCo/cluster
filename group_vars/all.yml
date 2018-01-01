@@ -3,3 +3,8 @@
 k8s_version: 1.9.0
 k8s_deb_version: 1.9.0-00
 k8s_master_host: k8s.kazoku.co
+
+glusterfs_version: 3.13
+glusterfs_volumes:
+- discourse-uploads
+- discourse-backups
