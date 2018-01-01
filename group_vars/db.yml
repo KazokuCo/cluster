@@ -1,0 +1,2 @@
+k8s_role: db
+k8s_taint: node-role.kubernetes.io/master=:NoSchedule
