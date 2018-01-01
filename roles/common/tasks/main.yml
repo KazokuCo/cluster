@@ -29,6 +29,14 @@
 #     state: enabled
 #     policy: reject
 
+- name: add all other hosts to /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: '{{ "127.0.1.1" if item == ansible_hostname else (hostvars[item]["ansible_all_ipv4_addresses"]|ipv4("192.168.0.0/24"))[0] }} {{ item }}.localdomain {{ item }}'
+    regexp: '{{ item }}$'
+  with_items: "{{ hostvars.keys() }}"
+  when: "'ansible_all_ipv4_addresses' in hostvars[item]"
+
 - name: ensure apt-transport-https is available
   apt: name=apt-transport-https state=present
 

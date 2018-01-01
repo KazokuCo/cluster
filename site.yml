@@ -1,4 +1,5 @@
 ---
+- hosts: all # <- gather facts about all hosts first!
 - include: master.yml
 - include: workers.yml
 - include: db.yml
